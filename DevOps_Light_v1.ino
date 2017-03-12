@@ -429,8 +429,8 @@ wifiManager.addParameter(&custom_light_location);
 an AP if it cant connect. Startconfigportal will create an AP each and every time you start up
 */
 
-wifiManager.startConfigPortal("CloudStatusLightConfig");
-//wifiManager.autoConnect("CloudStatusLightConfig");
+//wifiManager.startConfigPortal("CloudStatusLightConfig");
+wifiManager.autoConnect("CloudStatusLightConfig");
 
 // Once we get this far in setup, we're connected to WiFi :)
 #ifdef DEBUG
