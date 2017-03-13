@@ -17,7 +17,7 @@
 #include <ArduinoJson.h>          // https://github.com/bblanchon/ArduinoJson
 #include <PubSubClient.h>         // https://github.com/knolleary/pubsubclient
 
-#define DEBUG                     // Define DEBUG to enable serial output
+//#define DEBUG                     // Define DEBUG to enable serial output
 
 const int number_retries = 5;   // Number of connection retries before declaring host unavailable. Careful here, too high a number and you can mask real problems....
 
@@ -41,7 +41,8 @@ long lastTime = millis();
 
 int refreshRate = 5000; 
 int brightness = 100;
-int result = 0;         // variable that keeps the last results from the availability test
+
+//int result = 0;         // variable that keeps the last results from the availability test
 
 /* Define variables for host & url. URL is defined as a relatively large character array as it needs to be able to hold a long
 json with all the URLs in. TODO - make it variable length and deal with the complexity
@@ -131,10 +132,12 @@ void write_to_mqtt (String topic, String message)
   StaticJsonBuffer<512> jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
 
-  char buf[4];
+  char buf[16];
   int freemem = ESP.getFreeHeap();
   
-  itoa (freemem, buf, 10);
+//  itoa (freemem, buf, 10);
+
+  snprintf(buf, 15, "%d", freemem);
   
   root["content"] = message;
   root["freemem"] = buf;
@@ -215,9 +218,9 @@ WiFiClientSecure client;
          }
     if(line.indexOf("200") != -1)
     {
+      write_to_mqtt(statusTopic,"UP");
       #ifdef DEBUG 
         Serial.println("Bingo!");
-        write_to_mqtt(statusTopic,"UP");
       #endif   
       return 1;
     }
@@ -313,13 +316,45 @@ void circleColour(RgbColor colour){
 }
 
 
-void setStripColour(RgbColor colour){
+void setStripColour(int red, int green, int blue){
+
+  RgbColor colour(red, green, blue);
+  colour.Darken((255 - brightness));
   
- for(int i=0;i<PixelCount;i++){
+  for(int i=0;i<PixelCount;i++){
     strip.SetPixelColor(i, colour);
     strip.Show(); // This sends the updated pixel color to the hardware.
   }
   
+}
+
+
+void saveConfig(void){
+
+    #ifdef DEBUG
+      Serial.println("saving config");
+    #endif   
+    
+    DynamicJsonBuffer jsonBuffer;
+    JsonObject& json = jsonBuffer.createObject();
+    json["url"] = url;
+    json["host"] = host;
+    json["brightness"] = brightness;
+    json["refreshRate"] = refreshRate;
+    json["mqttServer"] = mqttServer;
+    json["devopsLightLocation"] = devopsLightLocation;
+    File configFile = SPIFFS.open("/config.json", "w");
+    if (!configFile) {
+      #ifdef DEBUG
+        Serial.println("failed to open config file for writing");
+      #endif  
+    }
+
+    json.printTo(Serial);
+    json.printTo(configFile);
+    configFile.close();
+    //end save
+    
 }
 
 
@@ -478,31 +513,8 @@ Serial.println(devopsLightLocation);
 
  if (shouldSaveConfig) {
   
-    #ifdef DEBUG
-      Serial.println("saving config");
-    #endif   
-    
-    DynamicJsonBuffer jsonBuffer;
-    JsonObject& json = jsonBuffer.createObject();
-    json["url"] = url;
-    json["host"] = host;
-    json["brightness"] = brightness;
-    json["refreshRate"] = refreshRate;
-    json["mqttServer"] = mqttServer;
-    json["devopsLightLocation"] = devopsLightLocation;
-    File configFile = SPIFFS.open("/config.json", "w");
-    if (!configFile) {
-      #ifdef DEBUG
-        Serial.println("failed to open config file for writing");
-      #endif  
-    }
-
-    json.printTo(Serial);
-    json.printTo(configFile);
-    configFile.close();
-    //end save
-
-
+    saveConfig();
+    shouldSaveConfig = false;
     
   }
 
@@ -603,23 +615,9 @@ else {
   
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-    result = 1;
-    strip.Show();
-    if (client.connected()) {
-      client.loop();
-    } 
-
-    if(urlUpdated)
-    {
-      write_to_mqtt(errorTopic, "URL Updated");
-      urlUpdated = false;
-    }
-
-    if(millis() - lastTime > refreshRate)
-    {
-        #ifdef DEBUG
+int checkURLs(void) {
+          int result = 1;
+          #ifdef DEBUG
           Serial.print("url contents: ");
           Serial.println(url);
         #endif
@@ -660,6 +658,37 @@ void loop() {
           Serial.println(result);
         #endif
         
+        return result;
+}
+
+
+
+void loop() {
+  // put your main code here, to run repeatedly:
+   int result = 1;
+    strip.Show();
+    if (client.connected()) {
+      client.loop();
+    } 
+
+    if(urlUpdated)
+    {
+      write_to_mqtt(errorTopic, "URL Updated");
+      shouldSaveConfig = true;
+      urlUpdated = false;
+    }
+
+    if(shouldSaveConfig)
+    {
+      saveConfig();
+      write_to_mqtt(errorTopic, "Config Saved");
+      shouldSaveConfig = false;
+    }
+
+    if(millis() - lastTime > refreshRate)
+    {
+        result = checkURLs();
+        
         if(result == 1)
         {
           red = 0;
@@ -678,10 +707,12 @@ void loop() {
         setStripColour(black);
         delay(25);
        */ 
-        RgbColor current(red, green, blue);
-        current.Darken((255 - brightness));
-        setStripColour(current);
+   //    std::auto_ptr<RgbColor> current(new RgbColor);
+       
+        setStripColour(red,green,blue);
+        
         lastTime = millis();
+       
     }
         
 }
