@@ -13,3 +13,4 @@ ToDos:
 - Consider refactoring to move availability checking code to a backend (is this sensible?)
 - Include smooth transitions between colour states
 - Create light based "error codes"
+ 
