@@ -25,7 +25,7 @@
 
 const int number_retries = 5;   // Number of connection retries before declaring host unavailable. Careful here, too high a number and you can mask real problems....
 
-// hostname required for OTA updates - this will show up in Arduino "IDE"
+// hostname required for OTA updates - this will show up in Arduino "IDE" 
 
 const char* otaHost = "OTA-DevOps-Light";
 
