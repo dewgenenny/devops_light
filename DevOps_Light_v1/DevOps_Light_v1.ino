@@ -17,15 +17,15 @@
 #include <ArduinoJson.h>          // https://github.com/bblanchon/ArduinoJson
 #include <PubSubClient.h>         // https://github.com/knolleary/pubsubclient
 
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
+#include <ESP8266mDNS.h>          // https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266mDNS
+#include <WiFiUdp.h>              // https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WiFi
+#include <ArduinoOTA.h>           // https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA
 
 #define DEBUG                     // Define DEBUG to enable serial output
 
 const int number_retries = 5;   // Number of connection retries before declaring host unavailable. Careful here, too high a number and you can mask real problems....
 
-// required for OTA updates
+// hostname required for OTA updates - this will show up in Arduino "IDE"
 
 const char* otaHost = "OTA-DevOps-Light";
 
